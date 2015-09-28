@@ -4,37 +4,48 @@
 using System;
 using System.Collections.Generic;
 using System.Data.Common;
+using System.Diagnostics.Tracing;
 using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using JetBrains.Annotations;
+using Microsoft.Data.Entity.Extensions;
 using Microsoft.Data.Entity.Infrastructure;
 using Microsoft.Data.Entity.Internal;
 using Microsoft.Data.Entity.Storage;
 using Microsoft.Data.Entity.Utilities;
-using Microsoft.Framework.Logging;
 
 namespace Microsoft.Data.Entity.Update
 {
     public abstract class ReaderModificationCommandBatch : ModificationCommandBatch
     {
         private readonly IRelationalCommandBuilderFactory _commandBuilderFactory;
+        private readonly ISensitiveDataLogger _logger;
+        private readonly TelemetrySource _telemetrySource;
+
         private readonly List<ModificationCommand> _modificationCommands = new List<ModificationCommand>();
 
-        protected virtual StringBuilder CachedCommandText { get;[param: NotNull] set; }
+        protected virtual StringBuilder CachedCommandText { get; [param: NotNull] set; }
 
         protected virtual int LastCachedCommandIndex { get; set; }
 
         protected ReaderModificationCommandBatch(
             [NotNull] IRelationalCommandBuilderFactory commandBuilderFactory,
             [NotNull] ISqlGenerator sqlGenerator,
-            [NotNull] IUpdateSqlGenerator updateSqlGenerator)
+            [NotNull] IUpdateSqlGenerator updateSqlGenerator,
+            [NotNull] ISensitiveDataLogger logger,
+            [NotNull] TelemetrySource telemetrySource)
         {
             Check.NotNull(commandBuilderFactory, nameof(commandBuilderFactory));
             Check.NotNull(updateSqlGenerator, nameof(updateSqlGenerator));
+            Check.NotNull(logger, nameof(logger));
+            Check.NotNull(telemetrySource, nameof(telemetrySource));
 
             _commandBuilderFactory = commandBuilderFactory;
+            _logger = logger;
+            _telemetrySource = telemetrySource;
+
             SqlGenerator = sqlGenerator;
             UpdateSqlGenerator = updateSqlGenerator;
         }
@@ -149,21 +160,16 @@ namespace Microsoft.Data.Entity.Update
             }
         }
 
-        public override void Execute(
-            IRelationalConnection connection,
-            ISensitiveDataLogger logger)
+        public override void Execute(IRelationalConnection connection)
         {
             Check.NotNull(connection, nameof(connection));
-            Check.NotNull(logger, nameof(logger));
 
             var commandText = GetCommandText();
 
             using (var storeCommand = CreateStoreCommand(commandText, connection))
             {
-                if (logger.IsEnabled(LogLevel.Verbose))
-                {
-                    logger.LogCommand(storeCommand);
-                }
+                _logger.LogCommand(storeCommand);
+                _telemetrySource.WriteCommand("Microsoft.Data.Entity.BeforeExecuteReader", storeCommand);
 
                 try
                 {
@@ -185,20 +191,16 @@ namespace Microsoft.Data.Entity.Update
 
         public override async Task ExecuteAsync(
             IRelationalConnection connection,
-            ISensitiveDataLogger logger,
             CancellationToken cancellationToken = default(CancellationToken))
         {
             Check.NotNull(connection, nameof(connection));
-            Check.NotNull(logger, nameof(logger));
 
             var commandText = GetCommandText();
 
             using (var storeCommand = CreateStoreCommand(commandText, connection))
             {
-                if (logger.IsEnabled(LogLevel.Verbose))
-                {
-                    logger.LogCommand(storeCommand);
-                }
+                _logger.LogCommand(storeCommand);
+                _telemetrySource.WriteCommand("Microsoft.Data.Entity.BeforeExecuteReader", storeCommand);
 
                 try
                 {

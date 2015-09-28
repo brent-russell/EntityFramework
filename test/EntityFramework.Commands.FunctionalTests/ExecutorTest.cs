@@ -69,7 +69,8 @@ namespace Microsoft.Data.Entity.Commands
                                     BuildReference.ByName("Microsoft.Framework.Logging", copyLocal: true),
                                     BuildReference.ByName("Microsoft.Framework.Logging.Abstractions", copyLocal: true),
                                     BuildReference.ByName("Microsoft.Framework.OptionsModel", copyLocal: true),
-                                    BuildReference.ByName("Remotion.Linq", copyLocal: true)
+                                    BuildReference.ByName("Remotion.Linq", copyLocal: true),
+                                    BuildReference.ByName("System.Diagnostics.Tracing.Telemetry", copyLocal: true)
                                 },
                         Sources = { @"
                             using Microsoft.Data.Entity;
@@ -145,7 +146,8 @@ namespace Microsoft.Data.Entity.Commands
                                 BuildReference.ByName("Microsoft.Framework.Logging", copyLocal: true),
                                 BuildReference.ByName("Microsoft.Framework.Logging.Abstractions", copyLocal: true),
                                 BuildReference.ByName("Microsoft.Framework.OptionsModel", copyLocal: true),
-                                BuildReference.ByName("Remotion.Linq", copyLocal: true)
+                                BuildReference.ByName("Remotion.Linq", copyLocal: true),
+                                BuildReference.ByName("System.Diagnostics.Tracing.Telemetry", copyLocal: true)
                             },
                     Sources = { @"
                         using Microsoft.Data.Entity;
