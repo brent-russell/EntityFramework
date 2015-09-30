@@ -22,7 +22,6 @@ namespace Microsoft.Data.Entity.Migrations.Internal
         private readonly IRelationalDatabaseCreator _databaseCreator;
         private readonly IMigrationsSqlGenerator _migrationsSqlGenerator;
         private readonly IRelationalCommandBuilderFactory _commandBuilderFactory;
-        private readonly ISqlStatementExecutor _executor;
         private readonly IRelationalConnection _connection;
         private readonly ISqlGenerator _sqlGenerator;
         private readonly ILogger _logger;
@@ -34,7 +33,6 @@ namespace Microsoft.Data.Entity.Migrations.Internal
             [NotNull] IDatabaseCreator databaseCreator,
             [NotNull] IMigrationsSqlGenerator migrationsSqlGenerator,
             [NotNull] IRelationalCommandBuilderFactory commandBuilderFactory,
-            [NotNull] ISqlStatementExecutor executor,
             [NotNull] IRelationalConnection connection,
             [NotNull] ISqlGenerator sqlGenerator,
             [NotNull] ILogger<Migrator> logger,
@@ -45,7 +43,6 @@ namespace Microsoft.Data.Entity.Migrations.Internal
             Check.NotNull(databaseCreator, nameof(databaseCreator));
             Check.NotNull(migrationsSqlGenerator, nameof(migrationsSqlGenerator));
             Check.NotNull(commandBuilderFactory, nameof(commandBuilderFactory));
-            Check.NotNull(executor, nameof(executor));
             Check.NotNull(connection, nameof(connection));
             Check.NotNull(sqlGenerator, nameof(sqlGenerator));
             Check.NotNull(logger, nameof(logger));
@@ -56,7 +53,6 @@ namespace Microsoft.Data.Entity.Migrations.Internal
             _databaseCreator = (IRelationalDatabaseCreator)databaseCreator;
             _migrationsSqlGenerator = migrationsSqlGenerator;
             _commandBuilderFactory = commandBuilderFactory;
-            _executor = executor;
             _connection = connection;
             _sqlGenerator = sqlGenerator;
             _logger = logger;
@@ -344,7 +340,11 @@ namespace Microsoft.Data.Entity.Migrations.Internal
         {
             using (var transaction = _connection.BeginTransaction())
             {
-                _executor.ExecuteNonQuery(_connection, relationalCommands);
+                foreach(var command in relationalCommands)
+                {
+                    command.ExecuteNonQuery(_connection);
+                }
+
                 transaction.Commit();
             }
         }
@@ -353,10 +353,13 @@ namespace Microsoft.Data.Entity.Migrations.Internal
             IEnumerable<RelationalCommand> relationalCommands,
             CancellationToken cancellationToken = default(CancellationToken))
         {
-
             using (var transaction = await _connection.BeginTransactionAsync(cancellationToken))
             {
-                await _executor.ExecuteNonQueryAsync(_connection, relationalCommands, cancellationToken);
+                foreach(var command in relationalCommands)
+                {
+                    await command.ExecuteNonQueryAsync(_connection, cancellationToken);
+                }
+
                 transaction.Commit();
             }
         }
